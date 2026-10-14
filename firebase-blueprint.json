@@ -1,0 +1,37 @@
+{
+  "entities": {
+    "SalonBackup": {
+      "title": "SalonBackup",
+      "description": "Cloud backup of salon appointments, transactions, staff, customers, and settings owned by the authenticated manager.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "The UID of the authenticated Google manager account."
+        },
+        "ownerEmail": {
+          "type": "string",
+          "maxLength": 256,
+          "description": "Email address of the manager."
+        },
+        "payloadJson": {
+          "type": "string",
+          "maxLength": 900000,
+          "description": "Serialized JSON string of salon state."
+        },
+        "updatedAt": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Human readable timestamp of last backup."
+        }
+      },
+      "required": ["ownerId", "ownerEmail", "payloadJson", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/salonBackups/{userId}": {
+      "schema": { "$ref": "#/entities/SalonBackup" },
+      "description": "Per-manager cloud backup document keyed by the authenticated user's UID."
+    }
+  }
+}

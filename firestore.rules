@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidSalonBackup(data, userId) {
+      return data.keys().hasAll(['ownerId', 'ownerEmail', 'payloadJson', 'updatedAt'])
+        && data.keys().hasOnly(['ownerId', 'ownerEmail', 'payloadJson', 'updatedAt'])
+        && data.ownerId is string
+        && data.ownerId == request.auth.uid
+        && data.ownerId == userId
+        && data.ownerEmail is string
+        && data.ownerEmail.size() >= 3
+        && data.ownerEmail.size() <= 256
+        && data.payloadJson is string
+        && data.payloadJson.size() >= 2
+        && data.payloadJson.size() <= 900000
+        && data.updatedAt is string
+        && data.updatedAt.size() >= 1
+        && data.updatedAt.size() <= 64;
+    }
+
+    match /salonBackups/{userId} {
+      allow get: if isSignedIn() && isValidId(userId) && request.auth.uid == userId;
+      allow list: if isSignedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && isValidSalonBackup(incoming(), userId);
+      allow update: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && existing().ownerId == request.auth.uid && isValidSalonBackup(incoming(), userId);
+      allow delete: if isSignedIn() && isValidId(userId) && request.auth.uid == userId && existing().ownerId == request.auth.uid;
+    }
+  }
+}
